@@ -24,7 +24,7 @@ In this example:
 - `ProductDataSource()` is registered using the type `ProductDataSourceProtocol` as the key.
 
 #### Resolving Dependencies
-
+ 
 Once registered, you can resolve the dependency using the `resolve()` method. If you used a key while registering the dependency, you must provide the same key when resolving it.
 
 ```swift
@@ -169,30 +169,6 @@ final class ProductDataSource: ProductDataSourceProtocol {
 
 This structure allows your data source to focus on specific domain tasks while keeping networking logic encapsulated in the service layer.
 
-### Connecting Use Case to Data Source
-
-Once you've set up your endpoints and data source, you can create a use case to encapsulate the business logic. Here’s an example of how to use a use case to fetch products:
-
-```swift
-protocol GetProductUseCaseProtocol {
-    func execute() async throws -> [Product]
-    func executeForProduct(id: String) async throws -> Product
-}
-
-final class GetProductUseCase: GetProductUseCaseProtocol {
-    
-    @Inject private var productDataSource: ProductDataSourceProtocol
-
-    func execute() async throws -> [Product] {
-        return try await productDataSource.fetchAllProducts()
-    }
-
-    func executeForProduct(id: String) async throws -> Product {
-        return try await productDataSource.fetchProductById(id: id)
-    }
-}
-```
-
 ### Repository Layer
 
 The repository interacts with the data source to fetch products and manage related actions. Here’s a sample repository implementation:
@@ -213,6 +189,24 @@ final class ProductRepository: ProductRepositoryProtocol {
     
     func createProduct(name: String, price: Double) async throws {
         try await remoteDataSource.createProduct(name: name, price: price)
+    }
+}
+```
+
+### Connecting Use Case to Repository
+Once you've set up your endpoints, data source, and repository, you can create a use case to encapsulate the business logic. The use case will connect to the repository, which in turn interacts with the data source. Here’s an example of how to use a use case to fetch products:
+
+```swift
+protocol GetProductsUseCaseProtocol {
+    func execute() async throws -> [Products]
+}
+
+final class GetProductsUseCase: GetProductsUseCaseProtocol {
+    // MARK: - Dependencies
+    @Inject private var repository: ProductRepositoryProtocol
+    
+    func execute() async throws -> [Products] {
+        return try await repository.getProducts()
     }
 }
 ```
