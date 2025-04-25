@@ -28,13 +28,13 @@ public protocol RequestInterceptor {
 public final class DefaultRequestInterceptor: RequestInterceptor {
     private let retryLimit: Int
     private let retryDelay: TimeInterval
-    private let appSession: AppSession
+    private let appSession: NetworkSession
     private var currentRetry = 0
     
     init(
         retryLimit: Int = 3,
         retryDelay: TimeInterval = 1.0,
-        appSession: AppSession = .shared
+        appSession: NetworkSession = .shared
     ) {
         self.retryLimit = retryLimit
         self.retryDelay = retryDelay

@@ -251,3 +251,6 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         return mappedError
     }
 }
+
+public struct EmptyResponse: Decodable {}
+
