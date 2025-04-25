@@ -23,7 +23,7 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
     private let logger: Logger
     private let cache: URLCache
     
-    init(
+    public init(
         configuration: NetworkConfiguration = .default,
         session: URLSession = .shared,
         interceptor: RequestInterceptor = DefaultRequestInterceptor(),

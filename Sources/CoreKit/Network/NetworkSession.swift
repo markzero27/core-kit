@@ -9,9 +9,9 @@
 import Foundation
 
 /// Manages authentication state and tokens
-final class NetworkSession {
+public final class NetworkSession {
     /// Shared instance for authentication management
-    nonisolated(unsafe) static let shared = NetworkSession()
+    nonisolated(unsafe) public static let shared = NetworkSession()
     
     /// Current access token for API requests
     private(set) var accessToken: String?

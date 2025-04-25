@@ -37,7 +37,7 @@ public protocol NetworkEndpoint {
     var retryLimit: Int { get }
 }
 
-extension NetworkEndpoint {
+public extension NetworkEndpoint {
     
     var headers: [String: String]? { nil }
     

@@ -13,6 +13,9 @@ public protocol ResponseValidator {
 }
 
 public struct DefaultResponseValidator: ResponseValidator {
+    
+    public init() {}
+    
     public func validate(_ data: Data, response: URLResponse) throws {
         guard let httpResponse = response as? HTTPURLResponse else {
             throw NetworkError.invalidResponse
