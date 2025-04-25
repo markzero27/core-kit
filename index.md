@@ -11,7 +11,7 @@ Building scalable and testable iOS apps with SwiftUI can be challenging, especia
 
 ## What is CoreKit?
 
-**CoreKit** is a modular package tailored for SwiftUI projects following Clean Architecture principles. It helps developers streamline dependency injection and manage network services with minimal boilerplate. Whether you're building a small app or a large-scale solution, CoreKit gives you the flexibility and clarity needed to scale.
+**CoreKit** is a modular package tailored for SwiftUI projects following Clean Architecture principles. It helps developers streamline dependency injection and manage network services with minimal code complexity. Whether you're building a small app or a large-scale solution, CoreKit gives you the flexibility and clarity needed to scale.
 
 ## Key Features
 
@@ -109,20 +109,47 @@ This makes your code highly modular and testable.
 
 ---
 
-## Built-in Support for Unit Testing
+### Unit Testing with `@Inject`
 
-Testing is a breeze with CoreKit. Mock your services, register them in tests, and let `@Inject` do the rest.
+When testing components that use dependency injection, you can mock the dependencies and inject them using `@Inject`. This allows you to test the business logic in isolation without relying on actual network calls or external services.
+
+This pattern ensures that your repository, use case, and other components can be unit tested without relying on external systems.
+
+#### Unit Testing Dependencies with `@Inject` and `DependencyInjector`
+
+To unit test dependencies that are resolved using `@Inject`, you can register your mock implementations with the `DependencyInjector` before running your tests. This ensures that when `@Inject` is used in your components, the mock instance is injected instead of the real one.
+
+Here's how you can do it:
 
 ```swift
+import XCTest
+@testable import CoreKit
+
 class ProductRepositoryInjectTests: XCTestCase {
+
     override func setUp() {
-        let mockDataSource = MockProductDataSource()
-        DependencyInjector.register(mockDataSource as ProductDataSourceProtocol)
+        super.setUp()
+        // Register the mock data source for injection
+        let mockProductDataSource = MockProductDataSource()
+        DependencyInjector.register(mockProductDataSource as ProductDataSourceProtocol)
+    }
+
+    override func tearDown() {
+        // Optionally clear registered dependencies if your DependencyInjector supports it
+        super.tearDown()
     }
 
     func testRepositoryUsesInjectedMock() async throws {
+        // The repository will use @Inject to resolve ProductDataSourceProtocol, which is registered as a mock
         let repository = ProductRepository()
+        let mockProducts = [Product(id: "42", name: "Injected Mock", price: 42.0)]
+
+        // If needed, retrieve the mock to set its properties
+        let mock = DependencyInjector.resolve() as MockProductDataSource
+        mock.mockProducts = mockProducts
+
         let products = try await repository.getProducts()
+        XCTAssertEqual(products.count, 1)
         XCTAssertEqual(products.first?.name, "Injected Mock")
     }
 }
