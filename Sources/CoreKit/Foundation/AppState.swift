@@ -17,7 +17,7 @@ public struct AppState<Value>: DynamicProperty {
     private let preferences: Preferences
     
     @MainActor
-    init(_ keyPath: ReferenceWritableKeyPath<Preferences, Value>, preferences: Preferences = .standard) {
+    public init(_ keyPath: ReferenceWritableKeyPath<Preferences, Value>, preferences: Preferences = .standard) {
         self.keyPath = keyPath
         self.preferences = preferences
         let publisher = preferences

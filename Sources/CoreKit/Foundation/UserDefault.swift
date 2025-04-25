@@ -17,7 +17,7 @@ public struct UserDefault<Value> {
         set { fatalError("Wrapped value should not be used.") }
     }
     
-    init(wrappedValue: Value, _ key: String) {
+    public init(wrappedValue: Value, _ key: String) {
         self.defaultValue = wrappedValue
         self.key = key
     }

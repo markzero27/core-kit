@@ -20,7 +20,7 @@ final class AppSession {
     private(set) var refreshToken: String?
     
     /// Returns true if user is authenticated (has valid access token)
-    var isAuthenticated: Bool {
+    public var isAuthenticated: Bool {
         accessToken != nil
     }
     
@@ -34,7 +34,7 @@ final class AppSession {
     /// - Parameters:
     ///   - accessToken: The new access token
     ///   - refreshToken: The new refresh token
-    func setTokens(accessToken: String, refreshToken: String) {
+    public func setTokens(accessToken: String, refreshToken: String) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         // Save tokens to secure storage
@@ -42,7 +42,7 @@ final class AppSession {
     }
     
     /// Clears all authentication tokens
-    func clearTokens() {
+    public func clearTokens() {
         self.accessToken = nil
         self.refreshToken = nil
         // Remove tokens from secure storage
@@ -52,7 +52,7 @@ final class AppSession {
     /// Attempts to refresh the access token using the refresh token
     /// - Returns: A new access token
     /// - Throws: NetworkError if refresh fails
-    func refreshAccessToken() async throws -> String {
+    public func refreshAccessToken() async throws -> String {
         guard refreshToken != nil else {
             throw NetworkError.unauthorized
         }

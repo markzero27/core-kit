@@ -10,13 +10,13 @@ import Combine
 
 public class Preferences {
     
-    nonisolated(unsafe) static let standard = Preferences(userDefaults: .standard)
+    @MainActor public static let standard = Preferences(userDefaults: .standard)
     private(set) var userDefaults: UserDefaults
     
     /// Sends through the changed key path whenever a change occurs.
     var preferencesChangedSubject = PassthroughSubject<AnyKeyPath, Never>()
     
-    init(userDefaults: UserDefaults) {
+    public init(userDefaults: UserDefaults) {
         self.userDefaults = userDefaults
     }
 }
