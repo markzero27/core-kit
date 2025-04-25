@@ -9,9 +9,9 @@ import Foundation
 
 @propertyWrapper
 public struct Inject<T> {
-    private let key: DIKey?
+    private let key: String?
 
-    public init(key: DIKey? = nil) {
+    public init(key: String? = nil) {
         self.key = key
     }
 

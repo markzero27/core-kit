@@ -10,7 +10,7 @@ import Foundation
 public class DependencyInjector {
     nonisolated(unsafe) private static var dependencies: [AnyHashable: Any] = [:]
 
-    public static func register<T, Key: Hashable>(_ dependency: T, key: Key? = nil) {
+    public static func register<T>(_ dependency: T, key: String? = nil) {
         let lookupKey: AnyHashable
         if let key = key {
             lookupKey = key
