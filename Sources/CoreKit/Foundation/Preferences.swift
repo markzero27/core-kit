@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-public class Preferences {
+open class Preferences {
     
     @MainActor public static let standard = Preferences(userDefaults: .standard)
     private(set) var userDefaults: UserDefaults
