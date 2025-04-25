@@ -8,7 +8,7 @@
 import Foundation
 import Combine
 
-public final class Preferences {
+public class Preferences {
     
     nonisolated(unsafe) static let standard = Preferences(userDefaults: .standard)
     private(set) var userDefaults: UserDefaults
