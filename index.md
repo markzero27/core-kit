@@ -1,8 +1,7 @@
 ---
-title: Introducing CoreKit: A Modular Clean Architecture Foundation for SwiftUI
-published: true
-tags: swift, ios, architecture, swiftui, opensource
-cover_image: https://raw.githubusercontent.com/markzero27/core-kit/main/Assets/corekit-banner.png
+layout: default
+title: Introducing CoreKit
+permalink: /
 ---
 
 # Introducing CoreKit: A Modular Clean Architecture Foundation for SwiftUI  
