@@ -14,10 +14,10 @@ public final class NetworkSession {
     nonisolated(unsafe) public static let shared = NetworkSession()
     
     /// Current access token for API requests
-    private(set) var accessToken: String?
+    public private(set) var accessToken: String?
     
     /// Refresh token for obtaining new access tokens
-    private(set) var refreshToken: String?
+    public private(set) var refreshToken: String?
     
     /// Returns true if user is authenticated (has valid access token)
     public var isAuthenticated: Bool {
