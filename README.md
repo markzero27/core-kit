@@ -24,19 +24,19 @@ In this example:
 - `ProductDataSource()` is registered using the type `ProductDataSourceProtocol` as the key.
 
 #### Resolving Dependencies
- 
-Once registered, you can resolve the dependency using the `resolve()` method. If you used a key while registering the dependency, you must provide the same key when resolving it.
+
+Once dependencies are registered, you typically do **not** need to manually call `resolve()` thanks to the built-in `@Inject` property wrapper provided by CoreKit.
 
 ```swift
-let productService: NetworkService<ProductEndpoint> = DependencyInjector.resolve(key: "productService")
-let productDataSource: ProductDataSourceProtocol = DependencyInjector.resolve()
+@Inject(key: "productService") private var productService: NetworkService<ProductEndpoint>
+@Inject private var productDataSource: ProductDataSourceProtocol
 ```
 
 In this example:
-- `productService` is resolved using the key `"productService"`.
+- `productService` is automatically resolved using the key `"productService"`.
 - `productDataSource` is resolved using the type `ProductDataSourceProtocol` (since it was registered without a key).
 
-If a dependency is not found, the `resolve()` method will trigger a fatal error. Ensure that dependencies are registered correctly before resolving them.
+The `@Inject` wrapper internally handles resolving the dependency from the `DependencyInjector`. There is **no need to call `DependencyInjector.resolve()` manually** unless you need to resolve a dependency outside a property context.
 
 To register dependencies using CoreKit, define a `DependencyRegistry` enum or struct and implement a `registerAll()` method. Below is a generic example showing how to register network services, data sources, repositories, and use cases:
 
@@ -77,7 +77,34 @@ This ensures all required services are properly set up before the app begins exe
 
 ## Networking
 
+
 CoreKit supports a flexible and extensible way to define and use API endpoints using the `NetworkEndpoint` protocol.
+
+To define default behavior for all your endpoints, you can extend the `NetworkEndpoint` protocol with sensible defaults. This helps reduce boilerplate code when your endpoints share common configurations such as base URL, headers, or cache policy.
+
+```swift
+import Foundation
+import CoreKit
+
+extension NetworkEndpoint {
+    
+    var baseURL: URL? {
+        URL(string: "https://api.example.com")
+    }
+    
+    var headers: [String: String]? { nil }
+    
+    var queryItems: [URLQueryItem]? { nil }
+    
+    var body: [String: Any]? { nil }
+    
+    var timeoutInterval: TimeInterval { 60.0 }
+    
+    var cachePolicy: URLRequest.CachePolicy { .reloadIgnoringLocalAndRemoteCacheData }
+    
+    var retryLimit: Int { 3 }
+}
+```
 
 To define your API endpoints, create an enum that conforms to `NetworkEndpoint`. Each case in the enum represents an API action. Here’s an example:
 
@@ -213,7 +240,7 @@ final class GetProductsUseCase: GetProductsUseCaseProtocol {
 
 #### Example of Dependency Usage in a View Model
 
-You can inject dependencies into your view model by resolving them when needed. Here’s how it might look in a view model:
+You can inject dependencies into your view model using the `@Inject` property wrapper. Here’s how it might look in a view model:
 
 ```swift
 @Inject private var getProductUseCase: GetProductUseCaseProtocol
