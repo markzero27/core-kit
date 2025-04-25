@@ -22,25 +22,77 @@ Building scalable and testable iOS apps with SwiftUI can be challenging, especia
 
 ---
 
-## Dependency Injection Made Simple
+## Usage
 
-CoreKit comes with a powerful `DependencyInjector` and a Swift-friendly `@Inject` property wrapper. Here’s how easy it is to register and use your services:
+### Dependency Injection with `DependencyInjector`
 
-### Register Your Dependencies
+CoreKit provides a simple way to manage dependencies using the `DependencyInjector` class. This class allows you to register and resolve dependencies throughout your app.
+
+#### Registering Dependencies
+
+To register a dependency, you use the `register()` method. If you provide a `key`, the dependency will be registered with that key; otherwise, it will be registered using the type of the dependency as the key.
+
+Here’s how you can register dependencies:
 
 ```swift
 DependencyInjector.register(NetworkService<ProductEndpoint>(), key: "productService")
 DependencyInjector.register(ProductDataSource() as any ProductDataSourceProtocol)
 ```
 
-### Inject Anywhere with `@Inject`
+In this example:
+- `NetworkService<ProductEndpoint>()` is registered with the key `"productService"`.
+- `ProductDataSource()` is registered using the type `ProductDataSourceProtocol` as the key.
+
+#### Resolving Dependencies
+
+Once dependencies are registered, you typically do **not** need to manually call `resolve()` thanks to the built-in `@Inject` property wrapper provided by CoreKit.
 
 ```swift
 @Inject(key: "productService") private var productService: NetworkService<ProductEndpoint>
 @Inject private var productDataSource: ProductDataSourceProtocol
 ```
 
-No need to manually resolve anything—CoreKit handles it behind the scenes.
+In this example:
+- `productService` is automatically resolved using the key `"productService"`.
+- `productDataSource` is resolved using the type `ProductDataSourceProtocol` (since it was registered without a key).
+
+
+To register dependencies using CoreKit, define a `DependencyRegistry` enum or struct and implement a `registerAll()` method. Below is a generic example showing how to register network services, data sources, repositories, and use cases:
+
+```swift
+enum DependencyRegistry {
+    static func registerAll() {
+        registerNetworkServices()
+        registerDataSources()
+        registerRepositories()
+        registerUseCases()
+    }
+
+    static func registerNetworkServices() {
+        DependencyInjector.register(NetworkService<ProductEndpoint>(), key: "product")
+    }
+
+    static func registerDataSources() {
+        DependencyInjector.register(ProductDataSource() as any ProductDataSourceProtocol)
+    }
+
+    static func registerRepositories() {
+        DependencyInjector.register(ProductRepository() as any ProductRepositoryProtocol)
+    }
+
+    static func registerUseCases() {
+        DependencyInjector.register(GetProductUseCase() as any GetProductUseCaseProtocol)
+    }
+}
+```
+
+Then, in your app’s initialization phase (e.g., inside `AppDelegate` or `@main` struct), call:
+
+```swift
+DependencyRegistry.registerAll()
+```
+
+This ensures all required services are properly set up before the app begins executing business logic.
 
 ---
 
@@ -113,7 +165,6 @@ This makes your code highly modular and testable.
 
 When testing components that use dependency injection, you can mock the dependencies and inject them using `@Inject`. This allows you to test the business logic in isolation without relying on actual network calls or external services.
 
-This pattern ensures that your repository, use case, and other components can be unit tested without relying on external systems.
 
 #### Unit Testing Dependencies with `@Inject` and `DependencyInjector`
 
