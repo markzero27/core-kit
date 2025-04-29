@@ -35,6 +35,9 @@ public protocol NetworkEndpoint {
     
     /// Retry limit for this specific endpoint
     var retryLimit: Int { get }
+    
+    /// Enables logging for this specific endpoint
+    var isLoggingEnabled: Bool { get }
 }
 
 public extension NetworkEndpoint {
@@ -50,4 +53,6 @@ public extension NetworkEndpoint {
     var cachePolicy: URLRequest.CachePolicy { .reloadIgnoringLocalAndRemoteCacheData }
     
     var retryLimit: Int { 3 }
+    
+    var isLoggingEnabled: Bool { true }
 }

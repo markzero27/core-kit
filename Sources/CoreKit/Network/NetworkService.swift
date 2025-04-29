@@ -46,13 +46,16 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
     public func request<T: Decodable>(_ endpoint: Endpoint) async throws -> T {
         do {
             let request = try buildURLRequest(for: endpoint)
-            logRequest(request)
+            
+            if endpoint.isLoggingEnabled {
+                logRequest(request)
+            }
             
             let adaptedRequest = try await adaptRequest(request)
             let (data, response) = try await performRequest(adaptedRequest)
             
             // Log response data for debugging
-            if let responseString = String(data: data, encoding: .utf8) {
+            if endpoint.isLoggingEnabled, let responseString = String(data: data, encoding: .utf8) {
                 logger.debug("""
                     📥 Response Data:
                     ================
@@ -62,7 +65,10 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
             }
             
             try validator.validate(data, response: response)
-            logResponse(response, for: adaptedRequest)
+            
+            if endpoint.isLoggingEnabled {
+                logResponse(response, for: adaptedRequest)
+            }
             
             return try decodeResponse(data)
             
