@@ -106,11 +106,20 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         
         if let multipartData = getMultipartFormData(from: endpoint) {
             request.httpBody = multipartData
+            
+            // Automatically set Content-Type header if not already set
+            if request.value(forHTTPHeaderField: "Content-Type") == nil {
+                // Try to extract boundary from the multipart data or generate one
+                let boundary = extractBoundaryFromMultipartData(multipartData) ?? UUID().uuidString
+                request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+            }
+            
             if endpoint.isLoggingEnabled {
                 logger.debug("""
                     📤 Request Body (Multipart):
                     ================
                     Multipart form data (\(multipartData.count) bytes)
+                    Content-Type: \(request.value(forHTTPHeaderField: "Content-Type") ?? "Not set")
                     ================
                     """)
             }
@@ -132,6 +141,21 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         }
         
         return request
+    }
+
+    // Helper method to extract boundary from multipart data
+    private func extractBoundaryFromMultipartData(_ data: Data) -> String? {
+        guard let string = String(data: data, encoding: .utf8) else { return nil }
+        let pattern = "--([A-F0-9-]+)"
+        let regex = try? NSRegularExpression(pattern: pattern, options: [])
+        let range = NSRange(string.startIndex..<string.endIndex, in: string)
+        
+        if let match = regex?.firstMatch(in: string, options: [], range: range),
+           let boundaryRange = Range(match.range(at: 1), in: string) {
+            return String(string[boundaryRange])
+        }
+        
+        return nil
     }
     
     private func getMultipartFormData(from endpoint: Endpoint) -> Data? {
@@ -201,12 +225,16 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
     // MARK: - Private Logging Methods
     
     private func logRequest(_ request: URLRequest, endpoint: Endpoint) {
-        let bodyInfo = if let body = request.httpBody {
-            getMultipartFormData(from: endpoint) != nil 
-                ? "Multipart form data (\(body.count) bytes)"
-                : "JSON body (\(body.count) bytes)"
+        let bodyInfo: String
+        if let body = request.httpBody {
+            if getMultipartFormData(from: endpoint) != nil {
+                let multipartInfo = analyzeMultipartData(body)
+                bodyInfo = "Multipart form data (\(body.count) bytes) - \(multipartInfo)"
+            } else {
+                bodyInfo = "JSON body (\(body.count) bytes)"
+            }
         } else {
-            "No body"
+            bodyInfo = "No body"
         }
         
         logger.debug("""
@@ -219,6 +247,34 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
             \(self.formatHeaders(request.allHTTPHeaderFields ?? [:]))
             =========
             """)
+    }
+    
+    private func analyzeMultipartData(_ data: Data) -> String {
+        guard let string = String(data: data, encoding: .utf8) else {
+            return "Binary data"
+        }
+        
+        let boundaryPattern = "--([A-F0-9-]+)"
+        let fieldPattern = "Content-Disposition: form-data; name=\"([^\"]+)\""
+        
+        let boundaryRegex = try? NSRegularExpression(pattern: boundaryPattern, options: [])
+        let fieldRegex = try? NSRegularExpression(pattern: fieldPattern, options: [])
+        
+        let range = NSRange(string.startIndex..<string.endIndex, in: string)
+        
+        var boundary = "Unknown"
+        if let match = boundaryRegex?.firstMatch(in: string, options: [], range: range),
+           let boundaryRange = Range(match.range(at: 1), in: string) {
+            boundary = String(string[boundaryRange])
+        }
+        
+        let fieldMatches = fieldRegex?.matches(in: string, options: [], range: range) ?? []
+        let fieldNames = fieldMatches.compactMap { match -> String? in
+            guard let fieldRange = Range(match.range(at: 1), in: string) else { return nil }
+            return String(string[fieldRange])
+        }
+        
+        return "Boundary: \(boundary), Fields: [\(fieldNames.joined(separator: ", "))]"
     }
     
     private func logResponse(_ response: URLResponse, for request: URLRequest) {
