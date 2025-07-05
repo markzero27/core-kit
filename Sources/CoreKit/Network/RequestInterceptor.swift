@@ -5,7 +5,6 @@
 //  Created by Mark Daquis on 4/2/25.
 //
 
-
 import Foundation
 
 /// Protocol defining the requirements for intercepting and modifying requests
@@ -44,8 +43,10 @@ public final class DefaultRequestInterceptor: RequestInterceptor {
     public func adapt(_ request: URLRequest) async throws -> URLRequest {
         var adaptedRequest = request
         
-        // Add common headers
-        adaptedRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // Add Content-Type header only if not already set
+        if adaptedRequest.value(forHTTPHeaderField: "Content-Type") == nil {
+            adaptedRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        }
         
         // Add authorization if authenticated
         if let accessToken = appSession.accessToken {

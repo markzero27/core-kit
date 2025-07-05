@@ -124,19 +124,37 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
                     """)
             }
         } else if let body = endpoint.body {
-            do {
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
-                if let bodyString = String(data: request.httpBody!, encoding: .utf8) {
-                    logger.debug("""
-                        📤 Request Body (JSON):
-                        ================
-                        \(self.formatJSON(bodyString))
-                        ================
-                        """)
+            // Check if we need form encoding based on Content-Type
+            if let contentType = request.value(forHTTPHeaderField: "Content-Type"),
+               contentType.contains("application/x-www-form-urlencoded") {
+                // Form encode the data
+                var components = URLComponents()
+                components.queryItems = body.map { key, value in
+                    URLQueryItem(name: "\(key)", value: "\(value)")
                 }
-            } catch {
-                logger.error("⛔️ Failed to serialize request body: \(error.localizedDescription)")
-                throw NetworkError.encodingError(error)
+                
+                if let formData = components.percentEncodedQuery {
+                    request.httpBody = formData.data(using: .utf8)
+                } else {
+                    logger.error("⛔️ Failed to create form encoded data")
+                    throw NetworkError.encodingError(NSError(domain: "FormEncodingError", code: 0))
+                }
+            } else {
+                // JSON encode the data (existing behavior)
+                do {
+                    request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                    if let bodyString = String(data: request.httpBody!, encoding: .utf8) {
+                        logger.debug("""
+                            📤 Request Body (JSON):
+                            ================
+                            \(self.formatJSON(bodyString))
+                            ================
+                            """)
+                    }
+                } catch {
+                    logger.error("⛔️ Failed to serialize request body: \(error.localizedDescription)")
+                    throw NetworkError.encodingError(error)
+                }
             }
         }
         
@@ -231,6 +249,9 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
             if getMultipartFormData(from: endpoint) != nil {
                 let multipartInfo = analyzeMultipartData(body)
                 bodyInfo = "Multipart form data (\(body.count) bytes) - \(multipartInfo)"
+            } else if let contentType = request.value(forHTTPHeaderField: "Content-Type"),
+                      contentType.contains("application/x-www-form-urlencoded") {
+                bodyInfo = "Form encoded data (\(body.count) bytes)"
             } else {
                 bodyInfo = "JSON body (\(body.count) bytes)"
             }
@@ -255,7 +276,7 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
             return "Binary data"
         }
         
-        let boundaryPattern = "--([A-F0-9-]+)"
+        let boundaryPattern = "--([A-Za-z0-9-]+)"
         let fieldPattern = "Content-Disposition: form-data; name=\"([^\"]+)\""
         
         let boundaryRegex = try? NSRegularExpression(pattern: boundaryPattern, options: [])
