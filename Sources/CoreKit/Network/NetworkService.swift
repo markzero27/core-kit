@@ -48,7 +48,7 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
             let request = try buildURLRequest(for: endpoint)
             
             if endpoint.isLoggingEnabled {
-                logRequest(request)
+                logRequest(request, endpoint: endpoint)
             }
             
             let adaptedRequest = try await adaptRequest(request)
@@ -104,12 +104,22 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         request.httpMethod = endpoint.method.rawValue
         request.allHTTPHeaderFields = endpoint.headers
         
-        if let body = endpoint.body {
+        if let multipartData = getMultipartFormData(from: endpoint) {
+            request.httpBody = multipartData
+            if endpoint.isLoggingEnabled {
+                logger.debug("""
+                    📤 Request Body (Multipart):
+                    ================
+                    Multipart form data (\(multipartData.count) bytes)
+                    ================
+                    """)
+            }
+        } else if let body = endpoint.body {
             do {
                 request.httpBody = try JSONSerialization.data(withJSONObject: body)
                 if let bodyString = String(data: request.httpBody!, encoding: .utf8) {
                     logger.debug("""
-                        📤 Request Body:
+                        📤 Request Body (JSON):
                         ================
                         \(self.formatJSON(bodyString))
                         ================
@@ -122,6 +132,14 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         }
         
         return request
+    }
+    
+    private func getMultipartFormData(from endpoint: Endpoint) -> Data? {
+        if let endpointWithMultipart = endpoint as? any MultipartFormDataCapable {
+            return endpointWithMultipart.multipartFormData()
+        }
+        
+        return nil
     }
     
     private func adaptRequest(_ request: URLRequest) async throws -> URLRequest {
@@ -182,11 +200,20 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
     
     // MARK: - Private Logging Methods
     
-    private func logRequest(_ request: URLRequest) {
+    private func logRequest(_ request: URLRequest, endpoint: Endpoint) {
+        let bodyInfo = if let body = request.httpBody {
+            getMultipartFormData(from: endpoint) != nil 
+                ? "Multipart form data (\(body.count) bytes)"
+                : "JSON body (\(body.count) bytes)"
+        } else {
+            "No body"
+        }
+        
         logger.debug("""
             📡 REQUEST
             =========
             \(request.httpMethod ?? "GET") \(request.url?.absoluteString ?? "")
+            Body: \(bodyInfo)
             
             Headers:
             \(self.formatHeaders(request.allHTTPHeaderFields ?? [:]))
@@ -259,4 +286,3 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
 }
 
 public struct EmptyResponse: Decodable {}
-
