@@ -146,7 +146,8 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
     // Helper method to extract boundary from multipart data
     private func extractBoundaryFromMultipartData(_ data: Data) -> String? {
         guard let string = String(data: data, encoding: .utf8) else { return nil }
-        let pattern = "--([A-F0-9-]+)"
+        // Updated regex to match any alphanumeric boundary, not just hex
+        let pattern = "--([A-Za-z0-9-]+)"
         let regex = try? NSRegularExpression(pattern: pattern, options: [])
         let range = NSRange(string.startIndex..<string.endIndex, in: string)
         
