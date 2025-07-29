@@ -39,6 +39,9 @@ public protocol NetworkEndpoint {
     
     /// Enables logging for this specific endpoint
     var isLoggingEnabled: Bool { get }
+    
+    /// Optional error decoding type
+    var errorType: Decodable.Type? { get }
 }
 
 /// Represents a file to be uploaded
@@ -97,6 +100,8 @@ public extension NetworkEndpoint {
     var retryLimit: Int { 3 }
     
     var isLoggingEnabled: Bool { true }
+    
+    var errorType: Decodable.Type? { nil }
     
     /// Creates multipart form data with boundary
     /// - Parameter data: The multipart data protocol containing files and form fields

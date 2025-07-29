@@ -18,7 +18,7 @@ public enum NetworkError: LocalizedError {
     case unauthorized
     case forbidden
     case notFound
-    case badRequest(APIError?)
+    case badRequest(Error?)
     case serverError(Int)
     case networkFailure(Error)
     case unexpectedStatusCode(Int)
@@ -42,8 +42,11 @@ public enum NetworkError: LocalizedError {
             return "Access forbidden"
         case .notFound:
             return "Resource not found"
-        case .badRequest(let apiError):
-            return apiError?.message ?? "Bad request"
+        case .badRequest(let error):
+            if let describable = error as? LocalizedError {
+                return describable.errorDescription ?? "Bad request"
+            }
+            return error?.localizedDescription ?? "Bad request"
         case .serverError(let code):
             return "Server error occurred (\(code))"
         case .networkFailure(let error):
