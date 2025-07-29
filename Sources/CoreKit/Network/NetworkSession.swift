@@ -8,18 +8,8 @@
 
 import Foundation
 
-public protocol NetworkSessionProtocol {
-    var isAuthenticated: Bool { get }
-    var accessToken: String? { get }
-    var refreshToken: String? { get }
-    
-    func refreshAccessToken() async throws -> String
-    func setTokens(accessToken: String, refreshToken: String)
-    func clearTokens()
-}
-
 /// Manages authentication state and tokens
-public class NetworkSession: NetworkSessionProtocol {
+public final class NetworkSession {
     /// Shared instance for authentication management
     nonisolated(unsafe) public static let shared = NetworkSession()
     
@@ -34,8 +24,9 @@ public class NetworkSession: NetworkSessionProtocol {
         accessToken != nil
     }
     
-    /// Allow subclassing
-    public init() {
+    /// Private initializer to ensure singleton pattern
+    private init() {
+        // Load tokens from secure storage if available
         loadTokens()
     }
     
@@ -43,7 +34,7 @@ public class NetworkSession: NetworkSessionProtocol {
     /// - Parameters:
     ///   - accessToken: The new access token
     ///   - refreshToken: The new refresh token
-    open func setTokens(accessToken: String, refreshToken: String) {
+    public func setTokens(accessToken: String, refreshToken: String) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         // Save tokens to secure storage
@@ -51,7 +42,7 @@ public class NetworkSession: NetworkSessionProtocol {
     }
     
     /// Clears all authentication tokens
-    open func clearTokens() {
+    public func clearTokens() {
         self.accessToken = nil
         self.refreshToken = nil
         // Remove tokens from secure storage
@@ -61,7 +52,7 @@ public class NetworkSession: NetworkSessionProtocol {
     /// Attempts to refresh the access token using the refresh token
     /// - Returns: A new access token
     /// - Throws: NetworkError if refresh fails
-    open func refreshAccessToken() async throws -> String {
+    public func refreshAccessToken() async throws -> String {
         guard refreshToken != nil else {
             throw NetworkError.unauthorized
         }
@@ -73,21 +64,21 @@ public class NetworkSession: NetworkSessionProtocol {
     
     // MARK: - Private Methods
     
-    open func saveTokens() {
+    private func saveTokens() {
         // Save to UserDefaults for now, should use Keychain in production
         let defaults = UserDefaults.standard
         defaults.set(accessToken, forKey: "accessToken")
         defaults.set(refreshToken, forKey: "refreshToken")
     }
     
-    open func loadTokens() {
+    private func loadTokens() {
         // Load from UserDefaults for now, should use Keychain in production
         let defaults = UserDefaults.standard
         accessToken = defaults.string(forKey: "accessToken")
         refreshToken = defaults.string(forKey: "refreshToken")
     }
     
-    open func removeTokens() {
+    private func removeTokens() {
         // Remove from UserDefaults for now, should use Keychain in production
         let defaults = UserDefaults.standard
         defaults.removeObject(forKey: "accessToken")
