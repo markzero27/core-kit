@@ -74,7 +74,7 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
             
         } catch {
             logError("Network Request Failed", error)
-            throw mapError(error, for: endpoint)
+            throw mapError(error)
         }
     }
     
@@ -345,22 +345,7 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
     
     // MARK: - Private Error Handling
     
-    private func mapError(_ error: Error, for endpoint: Endpoint) -> NetworkError {
-        if let urlError = error as? URLError,
-           let response = urlError.userInfo["response"] as? HTTPURLResponse,
-           let data = urlError.userInfo["data"] as? Data,
-           let type = endpoint.errorType,
-           let decoded = try? JSONDecoder().decode(type, from: data) as? Error {
-            switch response.statusCode {
-            case 400: return .badRequest(decoded)
-            case 401: return .unauthorized
-            case 403: return .forbidden
-            case 404: return .notFound
-            case 500...599: return .serverError(response.statusCode)
-            default: return .unexpectedStatusCode(response.statusCode)
-            }
-        }
-        
+    private func mapError(_ error: Error) -> NetworkError {
         let mappedError: NetworkError
         switch error {
         case is DecodingError:
