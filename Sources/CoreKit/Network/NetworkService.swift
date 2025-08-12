@@ -63,9 +63,7 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
                     ================
                     """)
             }
-            
-            try validator.validate(data, response: response)
-            
+
             if endpoint.isLoggingEnabled {
                 logResponse(response, for: adaptedRequest)
             }
@@ -189,31 +187,54 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         try await interceptor.adapt(request)
     }
     
+    // MARK: - Private Error Wrapper for Validation Failure
+    private struct _ValidationFailure: Error {
+        let underlying: Error
+        let response: URLResponse
+    }
+
     // MARK: - Private Request Execution Methods
     
     private func performRequest(_ request: URLRequest) async throws -> (Data, URLResponse) {
         var currentRequest = request
         var lastError: Error?
-        
+
         for attempt in 0...configuration.retryLimit {
             do {
                 if attempt > 0 {
                     try await handleRetryAttempt(attempt)
                 }
-                
-                return try await session.data(for: currentRequest)
-                
+
+                let (data, response) = try await session.data(for: currentRequest)
+
+                // Validate; if it fails, wrap with response so the retry logic can inspect it in a single catch
+                do {
+                    try validator.validate(data, response: response)
+                    return (data, response)
+                } catch {
+                    throw _ValidationFailure(underlying: error, response: response)
+                }
             } catch {
+                // Single catch that handles BOTH transport and validation failures
                 lastError = error
-                logger.error("❌ Attempt \(attempt + 1) failed: \(error.localizedDescription)")
-                if try await shouldRetry(currentRequest, error: error) {
+
+                let (responseForDecision, underlyingError): (URLResponse?, Error) = {
+                    if let v = error as? _ValidationFailure { return (v.response, v.underlying) }
+                    return (nil, error)
+                }()
+
+                logger.error("❌ Attempt \(attempt + 1) failed: \(underlyingError.localizedDescription)")
+
+                if try await shouldRetry(currentRequest, response: responseForDecision, error: underlyingError) {
                     currentRequest = try await interceptor.adapt(request)
                     continue
                 }
-                break
+
+                // If it's a transport error (no response), break the loop; for validation we rethrow
+                if responseForDecision == nil { break } else { throw underlyingError }
             }
         }
-        
+
         throw lastError ?? NetworkError.networkFailure(NSError(domain: "", code: -1))
     }
     
@@ -222,8 +243,8 @@ public final class NetworkService<Endpoint: NetworkEndpoint>: NetworkServiceProt
         try await Task.sleep(nanoseconds: UInt64(configuration.retryDelay * 1_000_000_000))
     }
     
-    private func shouldRetry(_ request: URLRequest, error: Error) async throws -> Bool {
-        try await interceptor.retry(request, for: nil, error: error)
+    private func shouldRetry(_ request: URLRequest, response: URLResponse?, error: Error) async throws -> Bool {
+        try await interceptor.retry(request, for: response, error: error)
     }
     
     // MARK: - Private Response Handling Methods
